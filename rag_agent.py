@@ -3,9 +3,9 @@ import regex as re
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEmbeddings, HuggingFaceEndpoint
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders.directory import DirectoryLoader
+from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.messages.utils import convert_to_messages
 from langchain_core.tools.retriever import create_retriever_tool
-from langchain_core.vectorstores import InMemoryVectorStore
 from langgraph.graph import MessagesState
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -13,10 +13,22 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = getpass.getpass("Please enter your HF token:\n")
 
-print("Hallo! Ich bin Ihr virtueller Assistent. Wie kann ich Ihnen helfen? (Tippe 'exit' zum Beenden)\n")
-# query = input("Hallo! Ich bin Ihr virtueller Assistent. Wie kann ich Ihnen helfen?\n")
 
-# loader = PyPDFLoader(file_path="./data/erfuellungsbericht-100.pdf", mode="single")
+def create_index(documents, embeddings, index_path="vectorstore_index"):
+    if os.path.exists(path=index_path):
+        print("Loading existing index...")
+        vector_store = FAISS.load_local(
+            folder_path=index_path,
+            embeddings=embeddings,
+            allow_dangerous_deserialization=True # allow Pickle files
+        )
+    else:
+        print("Building new index...")
+        vector_store = FAISS.from_documents(documents=documents,embedding=embeddings)
+        vector_store.save_local(folder_path=index_path)
+    return vector_store
+
+
 loader = DirectoryLoader(
     path="./data",
     glob="*.pdf",
@@ -34,8 +46,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 all_splits = text_splitter.split_documents(documents=docs)
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-vector_store = InMemoryVectorStore.from_documents(documents=all_splits, embedding=embeddings)
-# vectore_store.add_documents(documents=all_splits)
+vector_store = create_index(documents=all_splits, embedding=embeddings)
 
 retriever = vector_store.as_retriever(
     search_type="similarity",
@@ -44,16 +55,6 @@ retriever = vector_store.as_retriever(
         "score_threshold": 0.5
     }
 )
-
-# retrieved_docs = vectore_store.similarity_search_with_score(query=query, k=5)
-"""retrieved_info = [
-    {
-        "content": doc.page_content,
-        "metadata": doc.metadata,
-        "score": score
-    }
-    for doc, score in retrieved_docs
-]"""
 
 retriever_tool = create_retriever_tool(
     retriever=retriever,
@@ -98,6 +99,7 @@ def generate_answer(state: MessagesState):
     return {"messages": [response]}
 
 
+print("Hallo! Ich bin Ihr virtueller Assistent. Wie kann ich Ihnen helfen? (Tippe 'exit' zum Beenden)\n")
 while True:
     user_query = input("Stelle mir eine Frage:\n")
     if user_query.lower() in ["exit", "stop", "quit"]:
@@ -148,5 +150,3 @@ while True:
         print(f"Model Response: {model_response}")
     else:
         response["messages"][-1].pretty_print()
-
-    # print(f"\n\n{retrieved_info}")
