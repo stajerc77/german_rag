@@ -123,14 +123,6 @@ if prompt:
     ]
 
     # context = "\n\n".join([doc.page_content for doc, _ in retrieved_docs])
-
-    with column2:
-        st.markdown("### Retrieved Conext")
-        for doc in retrieved_info:
-            filename = doc["metadata"].get("source", "Keine Quellenangabe")
-            st.markdown(f"- **Score:** {doc['score']:.2f}")
-            st.markdown(f"- **Inhalt:** {doc['content'][:100]}...")
-            st.markdown(f"- **Dateiname:** {filename}")
     
     model_input = {
         "messages": convert_to_messages(
@@ -173,3 +165,9 @@ if prompt:
             st.json(response["messages"][-1].response_metadata)
 
     st.session_state["messages"].append(("assistant", answer))
+
+    with column2:
+        st.markdown("### Dokumentenkontext")
+        for i, doc in enumerate(retrieved_info, 1):
+            with st.expander(f"Dokument {i} - {doc["metadata"].get("source", "Keine Quellenangabe")} (Score: {doc['score']:.2f})"):
+                st.markdown(f"- **Inhalt:** {doc['content'][:100]}...")
