@@ -4,9 +4,9 @@ import streamlit as st
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEmbeddings, HuggingFaceEndpoint
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders.directory import DirectoryLoader
+from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.messages.utils import convert_to_messages
 from langchain_core.tools.retriever import create_retriever_tool
-from langchain_core.vectorstores import InMemoryVectorStore
 from langgraph.graph import MessagesState
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -17,6 +17,22 @@ if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
 st.set_page_config(page_title="KI-Demo", page_icon="🤖")
 st.title("🤖 KI-Demo Chatbot")
 prompt = st.chat_input("Stelle mir eine Frage:\n")
+
+
+def create_index(documents, embeddings, index_path="vectorstore_index"):
+    if os.path.exists(path=index_path):
+        print("Loading existing index...")
+        vector_store = FAISS.load_local(
+            folder_path=index_path,
+            embeddings=embeddings,
+            allow_dangerous_deserialization=True # allow Pickle files
+        )
+    else:
+        print("Building new index...")
+        vector_store = FAISS.from_documents(documents=documents,embedding=embeddings)
+        vector_store.save_local(folder_path=index_path)
+    return vector_store
+
 
 @st.cache_resource
 def load_pipeline():
@@ -36,7 +52,7 @@ def load_pipeline():
     all_splits = text_splitter.split_documents(documents=docs)
 
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-    vector_store = InMemoryVectorStore.from_documents(documents=all_splits, embedding=embeddings)
+    vector_store = create_index(documents=all_splits, embeddings=embeddings)
 
     retriever = vector_store.as_retriever(
         search_type="similarity",
@@ -66,10 +82,6 @@ def load_pipeline():
     return vector_store, chatbot, retriever_tool
 
 vector_store, chatbot, retriever_tool = load_pipeline()
-# print("Hallo! Ich bin Ihr virtueller Assistent. Wie kann ich Ihnen helfen? (Tippe 'exit' zum Beenden)\n")
-# query = input("Hallo! Ich bin Ihr virtueller Assistent. Wie kann ich Ihnen helfen?\n")
-
-# loader = PyPDFLoader(file_path="./data/erfuellungsbericht-100.pdf", mode="single")
 
 GENERATE_PROMPT = (
     "You are an assistant for question-answering tasks in German language."
@@ -121,8 +133,6 @@ if prompt:
         }
         for doc, score in retrieved_docs
     ]
-
-    # context = "\n\n".join([doc.page_content for doc, _ in retrieved_docs])
     
     model_input = {
         "messages": convert_to_messages(
