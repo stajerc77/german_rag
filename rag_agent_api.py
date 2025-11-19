@@ -9,6 +9,7 @@ from langchain_core.messages.utils import convert_to_messages
 from langchain_core.tools.retriever import create_retriever_tool
 from langgraph.graph import MessagesState
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from speech_generator import text_to_speech_bytes
 
 
 if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
@@ -168,9 +169,13 @@ if prompt:
     else:
         answer = model_output.strip()
 
+    audio_bytes = text_to_speech_bytes(answer)
+
     with column1:
         with st.chat_message("assistant"):
             st.markdown(answer)
+            # add play button
+            st.audio(audio_bytes, format="audio/wav")
         with st.expander(f"Model Info: {model_name}"):
             st.json(response["messages"][-1].response_metadata)
 
