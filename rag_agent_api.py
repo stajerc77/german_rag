@@ -1,4 +1,5 @@
-import getpass, os
+import getpass
+import os
 import regex as re
 import streamlit as st
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEmbeddings, HuggingFaceEndpoint
@@ -9,6 +10,7 @@ from langchain_core.messages.utils import convert_to_messages
 from langchain_core.tools.retriever import create_retriever_tool
 from langgraph.graph import MessagesState
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from llm_logger import log_llm
 from speech_generator import text_to_speech_bytes
 
 
@@ -169,6 +171,8 @@ if prompt:
     else:
         answer = model_output.strip()
 
+    # log LLM I/O and create audio bytes for TTS
+    log_llm(question=model_input["messages"][1].tool_calls[0]["args"]["query"], answer=answer)
     audio_bytes = text_to_speech_bytes(answer)
 
     with column1:
