@@ -60,7 +60,7 @@ def load_pipeline():
     retriever = vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={
-            "k": 5,
+            "k": 3,
             "score_threshold": 0.5
         }
     )
@@ -126,7 +126,7 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    retrieved_docs = vector_store.similarity_search_with_score(query=prompt, k=5)
+    retrieved_docs = vector_store.similarity_search_with_score(query=prompt, k=3)
     retrieved_info = [
         {
             "content": doc.page_content,
