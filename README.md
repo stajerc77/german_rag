@@ -28,7 +28,7 @@ To construct the index, LangChain's *DirectoryLoader* in combination with *PyPDF
 4. **Logging**: Basic logging is supported by the *logging* library
 
 ## Text-to-Speech Support
-A TTS feature was implemented for audio support. The LLM output field in the Streamlit app now has a button to play German audio for the given text without saving it as a WAV file. The audio is generated for every individual response in the Q&A loop. The functionality was implemented with [PiperTTS](https://github.com/OHF-Voice/piper1-gpl).
+A TTS feature was implemented for audio support. The LLM output field in the Streamlit app now has a button to play German audio for the given text without saving it as a WAV file. The audio is generated for every individual response in the Q&A loop. The functionality was implemented with [PiperTTS](https://github.com/OHF-Voice/piper1-gpl). To use the audio files, both the *onnx* and the *onnx.json* files must be present in the voices folder.
 
 ## Docker
 The app can be used with Docker as a Dockerfile is now provided. To build the container, run *docker build -t your-image-name .* in the command line. To use the app in a container, both the port and HF_API_TOKEN must be provided when running it. There are two options to do this:
